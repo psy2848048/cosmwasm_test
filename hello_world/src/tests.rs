@@ -1,10 +1,8 @@
 use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-use cosmwasm_std::{coin, coins, from_binary, Coin, Deps, DepsMut};
+use cosmwasm_std::{coins, from_binary};
 
-use crate::contract::{execute, instantiate, query};
-use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, CurrNameResponse};
-use crate::state::State;
+use crate::contract::{instantiate, query};
+use crate::msg::{InstantiateMsg, QueryMsg, CurrNameResponse};
 
 #[test]
 fn test_check_init_proper_config() {
