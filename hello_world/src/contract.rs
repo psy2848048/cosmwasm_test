@@ -37,7 +37,7 @@ pub fn execute(
 #[entry_point]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Hello {} => to_binary(&query_hello(deps, _env)?),
+        QueryMsg::Hello {} => query_hello(deps, _env),
     }
 }
 
@@ -70,7 +70,7 @@ pub fn execute_register(
 
 fn query_hello(deps: Deps, _env: Env) -> StdResult<Binary> {
     match name_read(deps.storage).may_load()? {
-        Some(curr_state) => to_binary( &CurrNameResponse{ name: curr_state.name }),
+        Some(curr_state) => to_binary( &CurrNameResponse{ name: format!("Hello, {}", curr_state.name)}),
         None => to_binary( &CurrNameResponse{ name: String::from("") } ),
     }
 }
