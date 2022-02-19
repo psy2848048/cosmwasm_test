@@ -5,11 +5,43 @@
     {
       "type": "object",
       "required": [
-        "get_count"
+        "balance"
       ],
       "properties": {
-        "get_count": {
-          "type": "object"
+        "balance": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "allowance"
+      ],
+      "properties": {
+        "allowance": {
+          "type": "object",
+          "required": [
+            "owner",
+            "spender"
+          ],
+          "properties": {
+            "owner": {
+              "type": "string"
+            },
+            "spender": {
+              "type": "string"
+            }
+          }
         }
       },
       "additionalProperties": false
