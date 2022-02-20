@@ -46,22 +46,24 @@ mod instantiate {
     use super::*;
     use crate::error::ContractError;
 
+    const TEST_NAME: &str = "Test token";
+    const TEST_SYMBOL: &str = "TEST";
+    const TEST_DECIMAL: u8 = 9;
+    const TEST_ADDRESS: &str = "addr0000";
+    const TEST_AMOUNT: u128 = 11223344;
+
+    const TEST_ADDRESS_BALANCE_EMPTY: &str = "addr0001";
+
     #[test]
     fn works() {
-        let test_name = "Test token".to_string();
-        let test_symbol = "TEST".to_string();
-        let test_decimals = 9u8;
-        let test_address = "addr0000".to_string();
-        let test_amount = 11223344u128;
-
         let mut deps = mock_dependencies();
         let instantiate_msg = InstantiateMsg {
-            name: test_name.clone(),
-            symbol: test_symbol.clone(),
-            decimals: test_decimals.clone(),
+            name: String::from(TEST_NAME),
+            symbol: String::from(TEST_SYMBOL),
+            decimals: TEST_DECIMAL,
             initial_balances: [InitialBalance {
-                address: test_address.clone(),
-                amount: Uint128::from(test_amount),
+                address: String::from(TEST_ADDRESS),
+                amount: Uint128::from(TEST_AMOUNT),
             }].to_vec(),
         };
 
@@ -72,15 +74,42 @@ mod instantiate {
         assert_eq!(
             get_constants(&deps.storage),
             Constants {
-                decimals: test_decimals,
-                name: test_name,
-                symbol: test_symbol,
+                decimals: TEST_DECIMAL,
+                name: String::from(TEST_NAME),
+                symbol: String::from(TEST_SYMBOL),
             },
         );
 
         assert_eq!(
-            get_balance(&deps.storage, &Addr::unchecked(test_address)),
-            test_amount,
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS)),
+            TEST_AMOUNT,
+        );
+    }
+
+    #[test]
+    fn works_with_empty_balance() {
+        let mut deps = mock_dependencies();
+        let instantiate_msg = InstantiateMsg {
+            name: String::from(TEST_NAME),
+            symbol: String::from(TEST_SYMBOL),
+            decimals: TEST_DECIMAL,
+            initial_balances: [InitialBalance {
+                address: String::from(TEST_ADDRESS),
+                amount: Uint128::from(TEST_AMOUNT),
+            }].to_vec(),
+        };
+
+        let (env, info) = mock_env_height("creater", 450, 500);
+        instantiate(deps.as_mut(), env, info, instantiate_msg).unwrap();
+
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS_BALANCE_EMPTY)),
+            0,
+        );
+
+        assert_eq!(
+            get_total_supply(&deps.storage),
+            TEST_AMOUNT,
         );
     }
 }
