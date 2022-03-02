@@ -385,3 +385,133 @@ mod instantiate {
         }
     }
 }
+
+mod transfer {
+    use super::*;
+    use crate::error::ContractError;
+    use cosmwasm_std::attr;
+
+    const TEST_NAME: &str = "Test token";
+    const TEST_SYMBOL: &str = "TEST";
+    const TEST_DECIMAL: u8 = 9;
+    const TEST_ADDRESS: &str = "addr0000";
+    const TEST_AMOUNT: u128 = 10;
+
+    const TEST_ADDRESS_BALANCE_EMPTY: &str = "addr0001";
+
+    const TEST_ADDRESS_2: &str = "addr002";
+    const TEST_AMOUNT_2: u128 = 20;
+
+    const TEST_ADDRESS_3: &str = "addr003";
+    const TEST_AMOUNT_3: u128 = 30;
+
+    const TEST_TRANSFER_AMOUNT: u128 = 10;
+
+    const TEST_TOTAL_SUPPLY: u128 = TEST_AMOUNT + TEST_AMOUNT_2 + TEST_AMOUNT_3;
+
+    fn make_instantiate_msg() -> InstantiateMsg {
+        InstantiateMsg {
+            name: String::from(TEST_NAME),
+            symbol: String::from(TEST_SYMBOL),
+            decimals: TEST_DECIMAL,
+            initial_balances: vec![
+                InitialBalance {
+                    address: String::from(TEST_ADDRESS),
+                    amount: Uint128::from(TEST_AMOUNT),
+                },
+                InitialBalance {
+                    address: String::from(TEST_ADDRESS_2),
+                    amount: Uint128::from(TEST_AMOUNT_2),
+                },
+                InitialBalance {
+                    address: String::from(TEST_ADDRESS_3),
+                    amount: Uint128::from(TEST_AMOUNT_3),
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn work_normal() {
+        let mut deps = mock_dependencies();
+        let instantiate_msg = make_instantiate_msg();
+        let (env, info) = mock_env_height("creator", 450, 550);
+        instantiate(deps.as_mut(), env, info, instantiate_msg).unwrap();
+
+        let transfer_msg = ExecuteMsg::Transfer{
+            recipient: String::from(TEST_ADDRESS),
+            amount: Uint128::from(TEST_TRANSFER_AMOUNT),
+        };
+
+        let (env, info) = mock_env_height(TEST_ADDRESS_2, 450, 550);
+        let transfer_result = execute(deps.as_mut(), env, info, transfer_msg).unwrap();
+
+        assert_eq!(transfer_result.messages.len(), 0);
+        assert_eq!(
+            transfer_result.attributes,
+            vec![
+                attr("action", "transfer"),
+                attr("sender", TEST_ADDRESS_2),
+                attr("recipient", TEST_ADDRESS),
+            ]
+        );
+
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS.to_string())),
+            TEST_AMOUNT + TEST_TRANSFER_AMOUNT,
+        );
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS_2.to_string())),
+            TEST_AMOUNT_2 - TEST_TRANSFER_AMOUNT,
+        );
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS_3.to_string())),
+            TEST_AMOUNT_3
+        );
+        assert_eq!(get_total_supply(&deps.storage), TEST_TOTAL_SUPPLY);
+    }
+
+    #[test]
+    fn send_to_non_existent_recipient() {
+        let mut deps = mock_dependencies();
+        let instantiate_msg = make_instantiate_msg();
+        let (env, info) = mock_env_height("creator", 450, 550);
+        instantiate(deps.as_mut(), env, info, instantiate_msg).unwrap();
+
+        let transfer_msg = ExecuteMsg::Transfer{
+            recipient: String::from(TEST_ADDRESS_BALANCE_EMPTY),
+            amount: Uint128::from(TEST_TRANSFER_AMOUNT),
+        };
+
+        let (env, info) = mock_env_height(TEST_ADDRESS_2, 450, 550);
+        let transfer_result = execute(deps.as_mut(), env, info, transfer_msg).unwrap();
+
+        assert_eq!(transfer_result.messages.len(), 0);
+        assert_eq!(
+            transfer_result.attributes,
+            vec![
+                attr("action", "transfer"),
+                attr("sender", TEST_ADDRESS_2),
+                attr("recipient", TEST_ADDRESS_BALANCE_EMPTY),
+            ]
+        );
+
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS.to_string())),
+            TEST_AMOUNT,
+        );
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS_2.to_string())),
+            TEST_AMOUNT_2 - TEST_TRANSFER_AMOUNT,
+        );
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS_3.to_string())),
+            TEST_AMOUNT_3
+        );
+        assert_eq!(
+            get_balance(&deps.storage, &Addr::unchecked(TEST_ADDRESS_BALANCE_EMPTY.to_string())),
+            TEST_TRANSFER_AMOUNT
+        );
+        assert_eq!(get_total_supply(&deps.storage), TEST_TOTAL_SUPPLY);
+    }
+}
